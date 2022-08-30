@@ -1,9 +1,52 @@
 import type { NextPage } from 'next'
 import Head from 'next/head'
-import Image from 'next/image'
 import styles from '../styles/Home.module.css'
+import 'core-js/actual';
+import { listen } from "@ledgerhq/logs";
+import AppBtc from "@ledgerhq/hw-app-btc";
+
+// Keep this import if you want to use a Ledger Nano S/X/S Plus with the USB protocol and delete the @ledgerhq/hw-transport-webhid import
+import TransportWebUSB from "@ledgerhq/hw-transport-webusb";
+// Keep this import if you want to use a Ledger Nano S/X/S Plus with the HID protocol and delete the @ledgerhq/hw-transport-webusb import
+import TransportWebHID from "@ledgerhq/hw-transport-webhid";
+import { Button, Flex, useColorModeValue } from '@chakra-ui/react';
+import { useState } from 'react';
 
 const Home: NextPage = () => {
+  const [account, setAccount] = useState('')
+
+  async function connectWithLedger(){
+    try {
+      // Keep if you chose the USB protocol
+      // const transport = await TransportWebUSB.create();
+      const transportWebUSB = await TransportWebUSB.create();
+  
+      // Keep if you chose the HID protocol
+      // const transport = await TransportWebHID.create();
+      const transportWebHID = await TransportWebHID.create();
+  
+      //listen to the events which are sent by the Ledger packages in order to debug the app
+      listen(log => console.log(log))
+  
+      //When the Ledger device connected it is trying to display the bitcoin address
+
+      const appBtc = new AppBtc(transportWebHID);
+      
+      const { bitcoinAddress } = await appBtc.getWalletPublicKey(
+        "44'/0'/0'/0/0",
+        { verify: false, format: "legacy"}
+      );
+    
+  
+      setAccount(bitcoinAddress)
+  
+      //Display the address on the Ledger device and ask to verify the address
+      await appBtc.getWalletPublicKey("44'/0'/0'/0/0", {format:"legacy", verify: true});
+    } catch (err) {
+      alert(err);
+    }
+  }
+
   return (
     <div className={styles.container}>
       <Head>
@@ -14,57 +57,33 @@ const Home: NextPage = () => {
 
       <main className={styles.main}>
         <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
+          Welcome to Ledger App
         </h1>
 
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.tsx</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
+        <div className={styles.description}>
+        {account?'Your first Bitcoin address:' : 'Connect your Nano and open the Bitcoin app. Click on button to start...'} 
         </div>
+
+        <Flex
+          h="100vh"
+          justifyContent="center"
+          alignItems="center">
+          <Button
+            px={8}
+            bg={useColorModeValue('#151f21', 'gray.900')}
+            color={'white'}
+            rounded={'md'}
+            _hover={{
+              transform: 'translateY(-2px)',
+              boxShadow: 'lg',
+            }}
+            onClick={() => connectWithLedger()}>
+            Connect Ledger
+          </Button>
+        </Flex>
       </main>
 
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
+      
     </div>
   )
 }
