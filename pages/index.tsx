@@ -14,11 +14,21 @@ import { useState } from 'react';
 
 const Home: NextPage = () => {
   const [account, setAccount] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const colorbg = useColorModeValue('#151f21', 'gray.900')
+
+
+  async function disconnectLedger(){
+    setIsLoading(true)
+    setAccount('')
+    setIsLoading(false)
+  }
 
   async function connectWithLedger(){
     try {
+      setIsLoading(true)
       // Keep if you chose the USB protocol
-      const transport = await TransportWebUSB.create();
+      // const transport = await TransportWebUSB.create();
   
       // Keep if you chose the HID protocol
       const transport = await TransportWebHID.create();
@@ -27,19 +37,18 @@ const Home: NextPage = () => {
       listen(log => console.log(log))
   
       //When the Ledger device connected it is trying to display the bitcoin address
-
       const appBtc = new AppBtc(transport);
       
       const { bitcoinAddress } = await appBtc.getWalletPublicKey(
         "44'/0'/0'/0/0",
         { verify: false, format: "legacy"}
       );
-    
-  
+
       setAccount(bitcoinAddress)
-  
+      setIsLoading(false)
       //Display the address on the Ledger device and ask to verify the address
       await appBtc.getWalletPublicKey("44'/0'/0'/0/0", {format:"legacy", verify: true});
+      
     } catch (err) {
       alert(err);
     }
@@ -62,26 +71,42 @@ const Home: NextPage = () => {
         {account?`Your first Bitcoin address: ${account}` : 'Connect your Nano and open the Bitcoin app. Click on button to start...'} 
         </div>
 
-        <Flex
+        {account?(<Flex
           h="100%"
           justifyContent="center"
           alignItems="center">
           <Button
             px={8}
-            bg={useColorModeValue('#151f21', 'gray.900')}
+            bg={colorbg}
             color={'white'}
             rounded={'md'}
             _hover={{
               transform: 'translateY(-2px)',
               boxShadow: 'lg',
             }}
-            onClick={() => connectWithLedger()}>
+            onClick={() => disconnectLedger()}>
+            Disconnect Ledger
+          </Button>
+        </Flex>):(<Flex
+          h="100%"
+          justifyContent="center"
+          alignItems="center">
+          <Button
+            px={8}
+            bg={colorbg}
+            color={'white'}
+            rounded={'md'}
+            _hover={{
+              transform: 'translateY(-2px)',
+              boxShadow: 'lg',
+            }}
+            onClick={() => connectWithLedger()}
+            isLoading={isLoading}
+            >
             Connect Ledger
           </Button>
-        </Flex>
-      </main>
-
-      
+        </Flex>)}
+      </main>   
     </div>
   )
 }
